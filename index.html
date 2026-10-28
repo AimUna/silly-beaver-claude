@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0E1513">
+</head>
+<body>
+<title>Silly Beaver V0</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mali:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow column. Setup screen picks the game; run screen = Beaver face on top, teacher console below. */
+:root{
+  --bg:#ECF2EE; --surface:#FFFFFF; --sunk:#E1EAE5; --ink:#1D2925; --muted:#5A6A63; --line:#CFDAD4;
+  --accent:#0E7A74; --accent-ink:#FFFFFF; --wood:#8B5A34; --wood-2:#C9946A; --wood-3:#EBD3BB;
+  --energy:#D99412; --warn:#B4452F; --ok:#2E7D4F;
+  --display:"Mali","Comic Neue",ui-rounded,"Trebuchet MS",sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1513; --surface:#17201D; --sunk:#111917; --ink:#E7EFEA; --muted:#98AAA2; --line:#2A3631;
+  --accent:#4BC2BA; --accent-ink:#06211F; --wood:#9C653A; --wood-2:#D6A378; --wood-3:#5A3E28;
+  --energy:#F2B53E; --warn:#E8775F; --ok:#5CC28A; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0E1513; --surface:#17201D; --sunk:#111917; --ink:#E7EFEA; --muted:#98AAA2; --line:#2A3631;
+  --accent:#4BC2BA; --accent-ink:#06211F; --wood:#9C653A; --wood-2:#D6A378; --wood-3:#5A3E28;
+  --energy:#F2B53E; --warn:#E8775F; --ok:#5CC28A; color-scheme:dark }
+
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;line-height:1.2}
+h1{font-size:1.7rem;font-weight:700}
+h2{font-size:1.15rem;font-weight:600}
+p{margin:0}
+.muted{color:var(--muted)}
+.label{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* header */
+.brand{display:flex;align-items:center;gap:12px}
+.brand svg{width:52px;height:52px;flex:none}
+.brand .ver{font-family:var(--mono);font-size:.75rem;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--mono);font-size:.72rem;padding:3px 9px;border-radius:99px;border:1px solid var(--line);background:var(--surface);display:inline-flex;align-items:center;gap:6px}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.chip.on::before{background:var(--ok)} .chip.off::before{background:var(--warn)} .chip.wait::before{background:var(--energy)}
+
+/* setup */
+.modes{display:grid;gap:10px}
+.mode{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:start;padding:14px;border:1.5px solid var(--line);border-radius:var(--r);background:var(--surface);text-align:left}
+.mode .n{grid-row:span 2;font-family:var(--display);font-weight:700;font-size:1.3rem;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--sunk);color:var(--wood)}
+.mode strong{font-family:var(--display);font-size:1.05rem;font-weight:600}
+.mode small{color:var(--muted);font-size:.85rem;min-width:0}
+.mode[aria-checked="true"]{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.mode[aria-checked="true"] .n{background:var(--accent);color:var(--accent-ink)}
+.fields{display:grid;gap:12px}
+.field{display:grid;gap:4px}
+.field input,.field select{padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);width:100%;min-width:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row > *{min-width:0}
+input[type=range]{accent-color:var(--accent);width:100%}
+.btn{padding:12px 18px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-family:var(--display);font-size:1.15rem;padding:14px 20px;width:100%}
+.btn.small{padding:8px 12px;font-size:.88rem;border-radius:10px}
+.btn:active{transform:translateY(1px)}
+.note{font-size:.85rem;color:var(--muted);border-left:3px solid var(--wood-2);padding-left:10px}
+
+/* run: stage */
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:14px;display:grid;gap:12px}
+.stagebar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.stagebar select{padding:6px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);font-family:var(--display);font-weight:600}
+.round{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+.face{display:grid;place-items:center;position:relative}
+.face svg{width:min(62vw,240px);height:auto;overflow:visible}
+.status{font-family:var(--display);font-weight:600;font-size:.95rem;text-align:center;color:var(--accent);min-height:1.4em}
+.bubble{background:var(--sunk);border-radius:16px;padding:12px 14px;min-height:3.2em;font-family:var(--display);font-size:1.08rem;font-weight:500}
+.heard{font-size:.9rem;color:var(--muted);min-height:1.5em}
+.heard b{color:var(--ink);font-weight:600}
+
+/* energy */
+.energy{display:flex;align-items:center;gap:10px}
+.energy .num{font-family:var(--display);font-weight:700;font-size:1.5rem;color:var(--energy);font-variant-numeric:tabular-nums;min-width:2ch}
+.drops{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;flex:1}
+.drops i{height:10px;border-radius:5px;background:var(--sunk);border:1px solid var(--line)}
+.drops i.f{background:var(--energy);border-color:var(--energy)}
+.lastb{font-size:.82rem;color:var(--muted);min-height:1.3em}
+
+/* camera */
+.cam{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3;max-width:100%}
+.cam video,.cam canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cam .tag{position:absolute;left:8px;bottom:8px;font-family:var(--mono);font-size:.75rem;background:rgba(0,0,0,.6);color:#fff;padding:3px 8px;border-radius:6px}
+.cam .off{position:absolute;inset:0;display:grid;place-items:center;color:#cfd8d4;font-size:.85rem;text-align:center;padding:16px}
+
+/* console */
+.console{display:grid;gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:10px}
+.resp{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.resp button{padding:11px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--sunk);font-weight:600;font-size:.9rem}
+.resp button:disabled,.objs button:disabled{opacity:.45}
+.typed{display:flex;gap:8px}
+.typed input{flex:1;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);min-width:0}
+.objs{display:flex;flex-wrap:wrap;gap:6px}
+.objs button{padding:6px 10px;border-radius:99px;border:1px solid var(--line);background:var(--sunk);font-size:.85rem}
+details summary{cursor:pointer;font-weight:600}
+.tally{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:.9rem}
+.tally span:nth-child(even){font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.logwrap{overflow-x:auto;max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;font-size:.78rem;width:100%}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{position:sticky;top:0;background:var(--sunk);font-weight:600}
+td.t{font-family:var(--mono);white-space:nowrap;color:var(--muted)}
+tr.beh td{color:var(--energy);font-weight:600}
+tr.kid td:last-child{color:var(--ink)}
+tr.bev td:last-child{color:var(--muted)}
+
+/* beaver animation */
+.mouth{transform-origin:100px 132px;transition:transform .1s}
+.talking .mouth{animation:talk .28s infinite alternate}
+@keyframes talk{from{transform:scaleY(.35)}to{transform:scaleY(1.15)}}
+.pupils{transition:transform .35s ease}
+.looking .pupils{animation:scan 2.2s ease-in-out infinite}
+@keyframes scan{0%,100%{transform:translateX(-5px)}50%{transform:translateX(5px)}}
+.thinking .pupils{transform:translate(4px,-5px)}
+.lids{transform-origin:100px 82px;transform:scaleY(0);animation:blink 5s infinite}
+@keyframes blink{0%,94%,100%{transform:scaleY(0)}96%{transform:scaleY(1)}}
+.earring{opacity:0}
+.listening .earring{animation:ping 1.2s ease-out infinite}
+@keyframes ping{0%{opacity:.9;r:16}100%{opacity:0;r:30}}
+.glow{opacity:0;transition:opacity .4s}
+.spark .glow{opacity:1}
+@media (prefers-reduced-motion: reduce){
+  .talking .mouth,.looking .pupils,.lids,.listening .earring{animation:none}
+}
+.hidden{display:none!important}
+</style>
+
+<div class="wrap">
+  <header class="brand">
+    <svg viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="96" fill="var(--wood-3)"/><circle cx="52" cy="50" r="20" fill="var(--wood)"/><circle cx="148" cy="50" r="20" fill="var(--wood)"/><ellipse cx="100" cy="108" rx="72" ry="66" fill="var(--wood)"/><circle cx="76" cy="88" r="13" fill="#fff"/><circle cx="124" cy="88" r="13" fill="#fff"/><circle cx="78" cy="90" r="6" fill="#1b1410"/><circle cx="126" cy="90" r="6" fill="#1b1410"/><ellipse cx="100" cy="126" rx="34" ry="24" fill="var(--wood-2)"/><ellipse cx="100" cy="114" rx="11" ry="7" fill="#2a1a12"/><rect x="88" y="138" width="11" height="16" rx="2" fill="#fff"/><rect x="101" y="138" width="11" height="16" rx="2" fill="#fff"/></svg>
+    <div>
+      <h1>Silly Beaver</h1>
+      <div class="ver">Little Beaver Lab · thinking robot · prototype V0</div>
+    </div>
+  </header>
+
+  <div class="chips" id="chips">
+    <span class="chip wait" id="chipEyes">Eyes: loading</span>
+    <span class="chip wait" id="chipCam">Camera: not started</span>
+    <span class="chip wait" id="chipEars">Ears: not started</span>
+    <span class="chip wait" id="chipVoice">Voice: checking</span>
+  </div>
+
+  <!-- SETUP -->
+  <section id="setup" class="wrap" style="gap:16px">
+    <div class="label">1 · Choose today's game</div>
+    <div class="modes" role="radiogroup" aria-label="Game" id="modes"></div>
+
+    <div class="label">2 · Set up</div>
+    <div class="fields">
+      <div class="field"><label for="childName">Child's name (optional, Beaver says it in the greeting)</label><input id="childName" placeholder="e.g. Pim" autocomplete="off"></div>
+      <div class="field"><label for="voiceSel">Beaver's voice</label><select id="voiceSel"></select></div>
+      <div class="field">
+        <label for="pitch">Voice pitch <span class="muted" id="pitchV"></span></label>
+        <div class="row"><input type="range" id="pitch" min="0.8" max="2" step="0.05" value="1.35"><button class="btn small" id="testVoice" type="button">Hear Beaver</button></div>
+      </div>
+      <div class="field">
+        <label for="honest">How often Beaver guesses right <span class="muted">(Oops & Convince games)</span>: <b id="honestV"></b></label>
+        <input type="range" id="honest" min="0" max="0.6" step="0.05" value="0.25">
+      </div>
+    </div>
+    <p class="note">Put the phone in Beaver with the back camera looking out of the forehead window and the volume up. Use Chrome on Android for the best listening. If the camera or microphone is unavailable, Beaver still runs: you tap what the child showed and said from the console.</p>
+    <button class="btn primary" id="startBtn" type="button">Wake Beaver up</button>
+  </section>
+
+  <!-- RUN -->
+  <section id="run" class="wrap hidden" style="gap:16px">
+    <div class="stage">
+      <div class="stagebar">
+        <select id="modeSwitch" aria-label="Switch game"></select>
+        <span class="round" id="roundLbl">Round 0</span>
+      </div>
+      <div class="face" id="face">
+        <svg viewBox="0 0 200 200" id="beaver" aria-label="Beaver">
+          <circle class="glow" cx="100" cy="104" r="98" fill="none" stroke="var(--energy)" stroke-width="5"/>
+          <circle class="earring" cx="46" cy="44" r="16" fill="none" stroke="var(--accent)" stroke-width="3"/>
+          <circle class="earring" cx="154" cy="44" r="16" fill="none" stroke="var(--accent)" stroke-width="3"/>
+          <circle cx="46" cy="44" r="20" fill="var(--wood)"/><circle cx="46" cy="44" r="10" fill="var(--wood-2)"/>
+          <circle cx="154" cy="44" r="20" fill="var(--wood)"/><circle cx="154" cy="44" r="10" fill="var(--wood-2)"/>
+          <ellipse cx="100" cy="106" rx="80" ry="74" fill="var(--wood)"/>
+          <rect x="68" y="58" width="64" height="16" rx="6" fill="var(--sunk)" stroke="var(--wood-2)" stroke-width="2" opacity=".9"/>
+          <circle cx="72" cy="88" r="16" fill="#fff"/><circle cx="128" cy="88" r="16" fill="#fff"/>
+          <g class="pupils"><circle cx="74" cy="90" r="8" fill="#1b1410"/><circle cx="130" cy="90" r="8" fill="#1b1410"/><circle cx="77" cy="87" r="2.5" fill="#fff"/><circle cx="133" cy="87" r="2.5" fill="#fff"/></g>
+          <g class="lids"><rect x="54" y="70" width="36" height="36" rx="18" fill="var(--wood)"/><rect x="110" y="70" width="36" height="36" rx="18" fill="var(--wood)"/></g>
+          <ellipse cx="100" cy="132" rx="40" ry="28" fill="var(--wood-2)"/>
+          <ellipse cx="100" cy="118" rx="13" ry="8" fill="#2a1a12"/>
+          <g class="mouth"><path d="M84 132 Q100 146 116 132 Q100 138 84 132Z" fill="#3a1f14"/></g>
+          <rect x="88" y="138" width="11" height="18" rx="2.5" fill="#fff" stroke="#d9cbb8"/><rect x="101" y="138" width="11" height="18" rx="2.5" fill="#fff" stroke="#d9cbb8"/>
+          <ellipse cx="34" cy="168" rx="16" ry="10" fill="var(--wood)"/><ellipse cx="166" cy="168" rx="16" ry="10" fill="var(--wood)"/>
+        </svg>
+      </div>
+      <div class="status" id="status">Getting ready…</div>
+      <div class="bubble" id="bubble" aria-live="polite">…</div>
+      <div class="heard" id="heard"></div>
+      <div class="energy" title="Thinking energy: earned for thinking moves, never for right answers">
+        <span class="num" id="energyNum">0</span>
+        <div class="drops" id="drops"></div>
+      </div>
+      <div class="lastb" id="lastBeh">Thinking energy grows when the child predicts, explains, tests or catches a mistake.</div>
+    </div>
+
+    <div class="console">
+      <div class="panel">
+        <div class="label">Child's response (tap if Beaver didn't hear)</div>
+        <div class="resp">
+          <button type="button" data-kind="yes">Said yes / agreed</button>
+          <button type="button" data-kind="no">Said no / disagreed</button>
+          <button type="button" data-kind="reason">Gave a reason</button>
+          <button type="button" data-kind="test">Suggested a test</button>
+          <button type="button" data-kind="silent">Said nothing</button>
+        </div>
+        <form class="typed" id="typedForm"><input id="typedIn" placeholder="Or type what the child said" autocomplete="off"><button class="btn small" type="submit">Send</button></form>
+      </div>
+
+      <div class="panel">
+        <div class="label">Beaver's eyes</div>
+        <div class="cam" id="cam"><video id="video" playsinline muted></video><canvas id="overlay"></canvas><div class="tag" id="camTag">waiting</div><div class="off" id="camOff">Camera is off. Tap the object the child shows below.</div></div>
+        <details id="objDetails"><summary>Show Beaver an object by hand</summary><div class="objs" id="objs" style="margin-top:10px"></div></details>
+      </div>
+
+      <div class="row">
+        <button class="btn" id="pauseBtn" type="button">Pause</button>
+        <button class="btn" id="endBtn" type="button">End session</button>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="justify-content:space-between"><h2>Session log</h2><button class="btn small" id="copyBtn" type="button">Copy as CSV</button></div>
+        <div class="tally" id="tally"></div>
+        <div class="logwrap"><table><thead><tr><th>Time</th><th>Rd</th><th>Event</th><th>Text</th></tr></thead><tbody id="logBody"></tbody></table></div>
+        <textarea id="csvOut" class="hidden" rows="4" style="width:100%;font-family:var(--mono);font-size:.75rem" aria-label="CSV log"></textarea>
+        <button class="btn small" id="newBtn" type="button">New session (clear log)</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+
+/* ---------- content ---------- */
+const MODES = {
+  look:    {n:1, name:'Look Closely',      goal:'Observation and attention. Beaver asks what the child noticed.'},
+  oops:    {n:2, name:'Oops, Beaver!',     goal:'Error detection. Beaver confidently guesses wrong and asks why.'},
+  predict: {n:3, name:'Predict First',     goal:'Think before checking. The child says what it is before Beaver looks.'},
+  convince:{n:4, name:'Convince Beaver',   goal:'Reasoning and evidence. Beaver only believes clues, not yes or no.'}
+};
+const BEH = {
+  predicted:'Predicted first', noticed:'Noticed details', explained:'Explained reasoning',
+  mistake:"Caught Beaver's mistake", changed:'Changed their mind', test:'Proposed a test', tried:'Tried again'
+};
+const NAME = {'sports ball':'ball','cell phone':'phone','potted plant':'plant','remote':'remote control','wine glass':'glass','hair drier':'hair dryer','mouse':'computer mouse','tv':'TV'};
+const SYN = {'sports ball':['ball'],'cell phone':['phone','mobile'],'teddy bear':['teddy','bear','doll'],'potted plant':['plant','flower','tree'],'remote':['remote','controller'],'wine glass':['glass'],'donut':['donut','doughnut'],'cup':['cup','mug','glass'],'bottle':['bottle'],'orange':['orange'],'car':['car'],'bowl':['bowl'],'book':['book'],'scissors':['scissor']};
+const WRONG = {
+  apple:['tomato','ball'], orange:['ball','apple'], banana:['yellow boat','moon'], broccoli:['tiny tree','cauliflower'],
+  carrot:['orange crayon','pencil'], cup:['hat','bowl'], bowl:['hat','cup'], bottle:['rocket','vase'], book:['sandwich','box'],
+  scissors:['crab','spoon'], 'teddy bear':['puppy','kitten'], spoon:['fork','tiny shovel'], fork:['spoon','comb'],
+  clock:['cookie','plate'], 'sports ball':['apple','orange'], 'cell phone':['chocolate bar','book'], remote:['phone','chocolate bar'],
+  toothbrush:['spoon','paintbrush'], donut:['wheel','cookie'], cake:['hat','sandwich'], vase:['bottle','cup'], mouse:['bar of soap','stone'],
+  keyboard:['piano','ruler'], umbrella:['tent','flower'], backpack:['pillow','box'], 'potted plant':['broccoli','tree'], kite:['bird'],
+  car:['bus','truck'], truck:['car','bus'], bus:['truck','train'], handbag:['backpack'], sandwich:['book','cake'], 'wine glass':['vase','cup'],
+  bird:['airplane'], cat:['dog'], dog:['cat'], 'hair drier':['phone','torch']
+};
+const PICKER = ['apple','banana','orange','broccoli','carrot','cup','bottle','book','scissors','teddy bear','spoon','sports ball','clock','toothbrush','cell phone','potted plant','car','bowl'];
+const EXCLUDE = new Set(['person','dining table','chair','couch','bed','toilet','refrigerator','oven','sink','tv','bench']);
+const REASON_RE = /\b(because|cause|cuz|so|has|have|got|it's|its|it is|look|looks|see|feel|feels|smell|shape|color|colour|red|green|yellow|blue|orange|brown|black|white|pink|purple|round|circle|square|long|short|big|small|little|tiny|soft|hard|smooth|bumpy|heavy|light|handle|leaves|leaf|stick|wheel|wheels|eat|drink|use|for|like|same|different)\b/;
+const TEST_RE = /\b(test|try|check|let's|lets|we can|could|touch|smell|taste|roll|squeeze|shake|look closer|look again|ask|open|bite|cut|weigh|compare)\b/;
+const NO_RE = /\b(no|nope|nah|not|wrong|isn't|isnt|ain't|don't|dont|silly)\b/;
+const YES_RE = /\b(yes|yeah|yep|yup|right|correct|true|uh huh|it is)\b/;
+
+/* ---------- state ---------- */
+const S = {
+  mode:'look', child:'', pitch:1.35, rate:0.93, honest:0.25, voice:null,
+  model:null, eyes:'loading', cam:false, ears:true, earsTried:false,
+  gen:0, running:false, paused:false, round:0, energy:0, tally:{}, log:[], lastClass:null,
+  pending:{listen:null, object:null}, wake:null, audio:null
+};
+Object.keys(BEH).forEach(k => S.tally[k] = 0);
+const STOP = Symbol('stop');
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+const store = {
+  get(k){ try { return JSON.parse(localStorage.getItem('sb_'+k)); } catch { return null; } },
+  set(k,v){ try { localStorage.setItem('sb_'+k, JSON.stringify(v)); } catch {} }
+};
+
+/* ---------- small helpers ---------- */
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const nm = c => NAME[c] || c;
+const an = w => (/^[aeiou]/i.test(w) ? 'an ' : 'a ') + w;
+const wrongFor = c => pick((WRONG[c] || ['hat','cookie','shoe','sandwich']).filter(w => w !== nm(c)));
+const matches = (t, c) => { t = (t||'').toLowerCase(); return [c, nm(c), ...(SYN[c]||[])].some(k => t.includes(k.toLowerCase())); };
+const ts = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+function chip(id, text, cls){ const el = $(id); el.textContent = text; el.className = 'chip ' + cls; }
+function face(cls, on){ $('#beaver').classList.toggle(cls, on); }
+function setStatus(s){
+  const map = {speaking:'Beaver is talking', listening:'Beaver is listening… 👂', looking:'Beaver is looking for an object', thinking:'Beaver is thinking', paused:'Paused', idle:'Asleep'};
+  $('#status').textContent = map[s] || s;
+  face('listening', s === 'listening'); face('looking', s === 'looking'); face('thinking', s === 'thinking');
+}
+
+/* ---------- log ---------- */
+function log(type, text, src){
+  const e = {time: ts(), mode: MODES[S.mode].name, round: S.round, type, text: text || '', source: src || ''};
+  S.log.push(e);
+  const tr = document.createElement('tr');
+  tr.className = type === 'beaver' ? 'bev' : type === 'child' ? 'kid' : (BEH[type] ? 'beh' : '');
+  const label = BEH[type] || type;
+  [e.time, e.round, label, (src && src !== 'voice' ? `[${src}] ` : '') + e.text].forEach((v,i) => { const td = document.createElement('td'); if(i===0) td.className='t'; td.textContent = v; tr.appendChild(td); });
+  const body = $('#logBody'); body.appendChild(tr); body.parentElement.parentElement.scrollTop = 1e6;
+}
+function renderTally(){
+  const t = $('#tally'); t.textContent = '';
+  Object.entries(BEH).forEach(([k,v]) => { const a = document.createElement('span'); a.textContent = v; const b = document.createElement('span'); b.textContent = S.tally[k]; t.append(a,b); });
+}
+function renderEnergy(){
+  $('#energyNum').textContent = S.energy;
+  const d = $('#drops'); d.textContent = '';
+  const filled = S.energy === 0 ? 0 : (S.energy % 10 || 10);
+  for (let i=0;i<10;i++){ const x = document.createElement('i'); if(i < filled) x.className='f'; d.appendChild(x); }
+}
+function chime(){
+  try {
+    const ctx = S.audio; if(!ctx) return;
+    [660, 990].forEach((f,i) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type='sine'; o.frequency.value=f;
+      const t0 = ctx.currentTime + i*0.11; g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(0.25,t0+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t0+0.35);
+      o.connect(g).connect(ctx.destination); o.start(t0); o.stop(t0+0.4); });
+  } catch {}
+}
+function mark(k, said){
+  S.tally[k]++; S.energy++; renderTally(); renderEnergy(); chime();
+  $('#lastBeh').textContent = '+1 thinking energy · ' + BEH[k];
+  face('spark', true); setTimeout(() => face('spark', false), 900);
+  log(k, said || '');
+}
+
+/* ---------- control flow: every step snapshots the session generation ---------- */
+function alive(g){ if (g !== S.gen) throw STOP; }
+
+function speak(text){
+  const g = S.gen; alive(g);
+  return new Promise(res => {
+    setStatus('speaking'); $('#bubble').textContent = text; log('beaver', text);
+    let done = false;
+    const fin = () => { if(done) return; done = true; clearTimeout(t); face('talking', false); res(); };
+    const t = setTimeout(fin, 2500 + text.length * 95);
+    if (!('speechSynthesis' in window)) { face('talking', true); return; }
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    if (S.voice) { u.voice = S.voice; u.lang = S.voice.lang; } else u.lang = 'en-US';
+    u.pitch = S.pitch; u.rate = S.rate;
+    u.onend = fin; u.onerror = fin;
+    face('talking', true);
+    speechSynthesis.speak(u);
+  }).then(() => alive(g));
+}
+
+function wait(ms){ const g = S.gen; return new Promise(r => setTimeout(r, ms)).then(() => alive(g)); }
+
+function listen(ms = 9000){
+  const g = S.gen; alive(g);
+  const manual = !SR || !S.ears;
+  if (manual) ms = Math.max(ms, 45000);
+  return new Promise(resolve => {
+    setStatus('listening'); $('#heard').textContent = manual ? 'Waiting for you to tap what the child said…' : '';
+    let settled = false, rec = null, interim = '';
+    const deadline = Date.now() + ms;
+    const finish = r => { if(settled) return; settled = true; clearTimeout(t); S.pending.listen = null; try { rec && rec.abort(); } catch {} setStatus('thinking'); resolve(r); };
+    S.pending.listen = finish;
+    const t = setTimeout(() => finish({text: interim, source: interim ? 'voice' : 'timeout'}), ms);
+    if (manual) return;
+    const start = () => {
+      rec = new SR(); rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+      rec.onresult = e => {
+        let fin = '', tmp = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) fin += r[0].transcript; else tmp += r[0].transcript; }
+        interim = (fin || tmp).trim();
+        $('#heard').innerHTML = ''; const b = document.createElement('b'); b.textContent = interim; $('#heard').append('Heard: ', b);
+        if (fin.trim()) finish({text: fin.trim(), source: 'voice'});
+      };
+      rec.onerror = e => {
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed' || e.error === 'audio-capture') {
+          S.ears = false; chip('#chipEars', 'Ears: manual (no mic)', 'off');
+          $('#heard').textContent = 'Microphone unavailable. Tap what the child said.';
+          clearTimeout(t); setTimeout(() => finish({text:'', source:'timeout'}), 45000);
+        }
+      };
+      rec.onend = () => { if (!settled && S.ears && Date.now() < deadline - 700) { try { start(); } catch {} } };
+      try { rec.start(); if (!S.earsTried) { S.earsTried = true; chip('#chipEars', 'Ears: on', 'on'); } } catch {}
+    };
+    start();
+  }).then(r => { alive(g); if (r.text) log('child', r.text, r.source); else log('child', '(no answer)', r.source); return analyze(r); });
+}
+
+function analyze(r){
+  const t = (r.text || '').toLowerCase();
+  const words = t.split(/\s+/).filter(Boolean);
+  const k = r.kind;
+  const no = k === 'no' || (!k && NO_RE.test(t));
+  return {
+    text: r.text || '', kind: k, source: r.source,
+    silent: k === 'silent' || (!k && !t),
+    no,
+    yes: k === 'yes' || (!k && !no && YES_RE.test(t)),
+    reason: k === 'reason' || k === 'test' || (!k && ((words.length >= 3 && REASON_RE.test(t)) || words.length >= 7)),
+    test: k === 'test' || (!k && TEST_RE.test(t))
+  };
+}
+
+/* ---------- eyes ---------- */
+async function detectTop(){
+  const v = $('#video');
+  if (!S.model || !S.cam || v.readyState < 2) return null;
+  let preds = [];
+  try { preds = await S.model.detect(v, 8); } catch { return null; }
+  const c = $('#overlay'); c.width = v.videoWidth; c.height = v.videoHeight;
+  const ctx = c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
+  let best = null;
+  preds.forEach(p => {
+    if (p.score < 0.5 || EXCLUDE.has(p.class)) return;
+    const a = p.bbox[2]*p.bbox[3];
+    if (!best || a > best.a) best = {cls: p.class, a, p};
+  });
+  if (best) {
+    const [x,y,w,h] = best.p.bbox; ctx.lineWidth = Math.max(3, c.width/160); ctx.strokeStyle = '#F2B53E'; ctx.strokeRect(x,y,w,h);
+    $('#camTag').textContent = `sees: ${nm(best.cls)} ${Math.round(best.p.score*100)}%`;
+  } else $('#camTag').textContent = 'sees: nothing yet';
+  return best ? best.cls : null;
+}
+
+function lookOnce(ms){
+  const g = S.gen; alive(g);
+  const manual = !(S.model && S.cam);
+  if (manual) { ms = Math.max(ms, 40000); $('#objDetails').open = true; }
+  return new Promise(resolve => {
+    setStatus('looking');
+    let settled = false, hist = [], gap = S.lastClass == null;
+    const finish = v => { if(settled) return; settled = true; clearTimeout(t); S.pending.object = null; setStatus('thinking'); resolve(v); };
+    S.pending.object = finish;
+    const t = setTimeout(() => finish(null), ms);
+    const loop = async () => {
+      if (settled) return;
+      if (!manual) {
+        const c = await detectTop();
+        if (!c) gap = true;
+        hist.push(c); if (hist.length > 3) hist.shift();
+        if (c && hist.length === 3 && hist.every(x => x === c) && (c !== S.lastClass || gap)) return finish({cls: c, source: 'camera'});
+      }
+      setTimeout(loop, 320);
+    };
+    loop();
+  }).then(r => { alive(g); if (r) { log('object', nm(r.cls), r.source); S.lastClass = r.cls; } return r ? r.cls : null; });
+}
+
+async function waitForObject(){
+  let tries = 0;
+  for (;;) {
+    const c = await lookOnce(15000);
+    if (c) return c;
+    tries++;
+    await speak(tries % 2 ? "I'm looking... hold it close, right in front of my face." : "Take your time. Show me whenever you're ready.");
+  }
+}
+
+/* ---------- the four games ---------- */
+function newRound(){ S.round++; $('#roundLbl').textContent = 'Round ' + S.round; log('round', 'Round ' + S.round + ' started'); }
+
+async function gameLook(fresh){
+  await speak(fresh ? "Let's play Look Closely! Find something interesting and show it to my eyes." : "Show me something interesting!");
+  for (;;) {
+    newRound();
+    const n = nm(await waitForObject());
+    await speak(`Hmm... I think I see ${an(n)}. But what did YOU notice about it?`);
+    let r = await listen();
+    if (r.silent) { await speak("Look really closely. What color is it? What do you see?"); r = await listen(); if (!r.silent) mark('tried', r.text); }
+    if (r.reason) mark('noticed', r.text);
+    const qs = [["What shape is it?", 'noticed'], ["What parts does it have?", 'noticed'], ["What do you think we use it for?", 'explained']].sort(() => Math.random() - .5).slice(0,2);
+    for (const [q, beh] of qs) {
+      await speak(pick(["Ooh, I didn't notice that!", "Hmm! I'm going to remember that.", "Interesting...", "Oh!"]) + ' ' + q);
+      const a = await listen();
+      if (a.reason) mark(beh, a.text);
+    }
+    await speak(pick(["You looked so closely. My eyes learned a lot. Can you find something new to show me?", "Wow, sharp eyes. Show me something else!"]));
+  }
+}
+
+async function gameOops(fresh){
+  await speak(fresh ? "This game is called Oops, Beaver! I'll guess what you show me. I'm really, really good at guessing... I think. Show me something!" : "Show me something! I'll guess.");
+  for (;;) {
+    newRound();
+    const c = await waitForObject(), n = nm(c);
+    const honest = Math.random() < S.honest;
+    const g = honest ? n : wrongFor(c);
+    log('beaver-guess', honest ? `guessed right (${g})` : `guessed wrong on purpose (${g})`);
+    await speak(`I know! I know! That is ${an(g)}!`);
+    let r = await listen();
+    if (r.silent) { await speak("Hmm, you're quiet. Am I right, or did I make a mistake?"); r = await listen(); if (!r.silent) mark('tried', r.text); }
+    if (!honest) {
+      if (r.no) {
+        mark('mistake', r.text);
+        await speak(pick(["Oh no! I'm wrong? Why am I wrong?", "Oops! What makes you think I'm wrong?"]));
+        let e = await listen();
+        if (!e.reason) { await speak(`Give me a clue. What does ${an(g)} look like? Does this look like that?`); e = await listen(); if (e.reason) mark('tried', e.text); }
+        if (e.reason) mark('explained', e.text);
+        await speak("Ohh. That makes sense. So what do you think it really is?");
+        await listen();
+        await speak(pick(["Thank you for fixing my thinking! Show me something else.", "Phew, my brain needed that. Show me another one!"]));
+      } else {
+        await speak(`Are you sure? Look really, really closely. Is it ${an(g)}?`);
+        const r2 = await listen();
+        if (r2.no) {
+          mark('changed', r2.text); mark('mistake', r2.text);
+          await speak("You changed your mind! What made you change your mind?");
+          const e = await listen(); if (e.reason) mark('explained', e.text);
+          await speak("Good looking. Even Beaver gets tricked sometimes. Show me another one!");
+        } else {
+          await speak(`Hmm. Think about ${an(g)}. What does it look like? Is this one the same? Let's check it with a grown-up later. Show me something new!`);
+        }
+      }
+    } else {
+      if (r.no) {
+        await speak(`Oh? Convince me! Why isn't it ${an(g)}?`);
+        const e = await listen(); if (e.reason) mark('explained', e.text);
+        await speak("Hmm, thank you for your idea. Let's look at it again together later and check. Show me another one!");
+      } else {
+        await speak(pick(["Hmm, how can you tell I was right? What did you look at?", "How do you know I'm right this time? What did you check?"]));
+        const e = await listen(); if (e.reason) mark('explained', e.text);
+        await speak("Good checking! I can't always be right, so keep checking me. Show me another!");
+      }
+    }
+  }
+}
+
+function cleanPred(r){
+  if (r.silent) return null;
+  if (r.kind && r.kind !== 'typed') return 'your idea';
+  let t = r.text.toLowerCase().replace(/^(i think |i guess |maybe |um+ |uh+ )+/,'').replace(/^(it's|it is|this is|that's|its|my|a|an|the)\s+/g,'').replace(/^(a|an|the)\s+/,'').trim();
+  if (!t) return 'your idea';
+  const w = t.split(/\s+/);
+  return w.length > 6 ? 'your idea' : (/^(your idea)$/.test(t) ? t : an(t));
+}
+
+async function gamePredict(fresh){
+  await speak(fresh ? "In this game, YOU think first and I look second. Pick something to show me, but hide it behind your back!" : "Hide something behind your back!");
+  for (;;) {
+    newRound();
+    await wait(2500);
+    await speak("Don't show me yet! First tell me: what are you holding?");
+    let r = await listen(10000);
+    if (r.silent) { await speak("Use your words. What do you think it is?"); r = await listen(); if (!r.silent) mark('tried', r.text); }
+    const p = cleanPred(r);
+    if (p) mark('predicted', r.text);
+    await speak("Okay! Now show me. Let me look with my eyes.");
+    const c = await waitForObject(), n = nm(c);
+    const agree = p && matches(r.text, c);
+    const said = p === 'your idea' ? 'You had your idea.' : `You said ${p}.`;
+    if (!p) await speak(`My eyes think it's ${an(n)}. But my eyes can be wrong. How could we check?`);
+    else if (agree) await speak(`${said} My eyes think it's ${an(n)}. We think the same thing! But could we both be wrong? How could we check?`);
+    else await speak(`${said} My eyes think it's ${an(n)}. Hmm, is that the same? How could we check who is right?`);
+    let t = await listen(10000);
+    if (t.silent) { await speak("Could we touch it? Look closer? Ask a friend? What could we do?"); t = await listen(); if (!t.silent) mark('tried', t.text); }
+    if (t.test || t.reason) {
+      mark('test', t.text);
+      await speak("That's a great way to check. Go ahead and try it! I'll wait.");
+      await wait(7000);
+      await speak("What did you find out?");
+      const f = await listen(); if (f.reason) mark('explained', f.text);
+      if (p && !agree) { await speak("So who was right? You, me, or neither of us?"); await listen(); }
+    } else {
+      await speak("Hmm. Let's look super closely together. What do you see?");
+      const f = await listen(); if (f.reason) mark('noticed', f.text);
+    }
+    await speak(pick(["You thought first. That's my favorite thing! Hide something new behind your back.", "Thinking before looking! Let's do another one. Hide something new."]));
+  }
+}
+
+async function gameConvince(fresh){
+  await speak(fresh ? "This game is called Convince Beaver. I'll make a guess, and you give me clues so I can decide. Show me something!" : "Show me something!");
+  for (;;) {
+    newRound();
+    const c = await waitForObject(), n = nm(c);
+    const honest = Math.random() < Math.max(S.honest, 0.4);
+    const g = honest ? n : wrongFor(c);
+    log('beaver-guess', honest ? `offered right answer (${g})` : `offered wrong answer (${g})`);
+    await speak(`Hmm... maybe it's ${an(g)}? I'm not sure. Convince me! Is it, or isn't it?`);
+    let clues = 0;
+    let r = await listen(10000);
+    if (r.reason) { clues++; mark('explained', r.text); }
+    else {
+      await speak(r.silent ? "Give me a clue! What do you see?" : `Hmm, just saying ${r.no ? 'no' : r.yes ? 'yes' : 'that'} doesn't convince me. Give me a clue. What do you see?`);
+      r = await listen(10000);
+      if (r.reason) { clues++; mark('tried', r.text); mark('explained', r.text); }
+    }
+    if (clues) {
+      await speak(pick(["Ooh, that's a good clue. Tell me one more clue!", "Hmm, interesting evidence! Can you give me another clue?"]));
+      const r2 = await listen(10000);
+      if (r2.reason) { clues++; mark('explained', r2.text); }
+    }
+    if (clues >= 2) await speak("Okay, okay! You convinced me with clues. That's real thinking. Show me something new!");
+    else if (clues === 1) await speak("Hmm, I'm almost convinced. Clues help my brain a lot! Show me something new.");
+    else await speak("That's okay. Next time let's look really closely and find clues together. Show me something new!");
+  }
+}
+const GAME = {look: gameLook, oops: gameOops, predict: gamePredict, convince: gameConvince};
+
+async function run(kind){
+  S.gen++; const g = S.gen; S.running = true; S.paused = false;
+  $('#pauseBtn').textContent = 'Pause';
+  log('session', `${kind} · ${MODES[S.mode].name}`);
+  try {
+    if (kind === 'start') {
+      await speak(`Hi${S.child ? ' ' + S.child : ''}! I'm Beaver. I'm still learning, so I make silly mistakes sometimes. Will you help me think?`);
+      await listen(6000);
+    } else if (kind === 'resume') await speak("I'm back! Let's keep thinking.");
+    await GAME[S.mode](kind !== 'resume');
+  } catch (e) {
+    if (e !== STOP) { console.error(e); $('#bubble').textContent = 'Something went wrong: ' + e.message + '. Tap Resume to carry on.'; S.paused = true; $('#pauseBtn').textContent = 'Resume'; }
+  }
+  if (g === S.gen) S.running = false;
+}
+function stop(){
+  S.gen++;
+  try { speechSynthesis.cancel(); } catch {}
+  face('talking', false);
+  if (S.pending.listen) S.pending.listen({text:'', source:'stopped'});
+  if (S.pending.object) S.pending.object(null);
+}
+
+/* ---------- devices ---------- */
+function loadEyes(){
+  const add = src => new Promise((ok, bad) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = bad; document.head.appendChild(s); });
+  add('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js')
+    .then(() => add('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js'))
+    .then(() => cocoSsd.load({base: 'lite_mobilenet_v2'}))
+    .then(m => { S.model = m; S.eyes = 'ready'; chip('#chipEyes', 'Eyes: ready', 'on'); })
+    .catch(() => { S.eyes = 'manual'; chip('#chipEyes', 'Eyes: manual (model blocked)', 'off'); });
+}
+async function startCamera(){
+  try {
+    const st = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: 'environment'}, width: {ideal: 640}, height: {ideal: 480}}, audio: false});
+    const v = $('#video'); v.srcObject = st; await v.play();
+    S.cam = true; chip('#chipCam', 'Camera: on', 'on'); $('#camOff').hidden = true;
+  } catch {
+    S.cam = false; chip('#chipCam', 'Camera: off (tap objects)', 'off'); $('#camOff').hidden = false;
+  }
+}
+async function wakeLock(){
+  try { if ('wakeLock' in navigator) { S.wake = await navigator.wakeLock.request('screen'); } } catch {}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.running) wakeLock(); });
+
+function loadVoices(){
+  if (!('speechSynthesis' in window)) { chip('#chipVoice', 'Voice: unavailable', 'off'); return; }
+  const vs = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang));
+  if (!vs.length) return;
+  const sel = $('#voiceSel'); const saved = store.get('voice');
+  sel.textContent = '';
+  const pref = ['Samantha','Google US English','Karen','Moira','Tessa','Google UK English Female'];
+  vs.sort((a,b) => { const ia = pref.findIndex(p => a.name.includes(p)), ib = pref.findIndex(p => b.name.includes(p)); return (ia<0?99:ia) - (ib<0?99:ib); });
+  vs.forEach(v => { const o = document.createElement('option'); o.value = v.name; o.textContent = `${v.name} (${v.lang})`; sel.appendChild(o); });
+  if (saved && vs.some(v => v.name === saved)) sel.value = saved;
+  S.voice = vs.find(v => v.name === sel.value) || vs[0];
+  chip('#chipVoice', 'Voice: on', 'on');
+}
+
+/* ---------- UI wiring ---------- */
+function buildModes(){
+  const box = $('#modes'), sw = $('#modeSwitch');
+  Object.entries(MODES).forEach(([k, m]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'mode'; b.setAttribute('role','radio'); b.dataset.mode = k;
+    b.innerHTML = `<span class="n">${m.n}</span><strong></strong><small></small>`;
+    b.querySelector('strong').textContent = m.name; b.querySelector('small').textContent = m.goal;
+    b.addEventListener('click', () => selectMode(k));
+    box.appendChild(b);
+    const o = document.createElement('option'); o.value = k; o.textContent = `${m.n}. ${m.name}`; sw.appendChild(o);
+  });
+}
+function selectMode(k){
+  S.mode = k; store.set('mode', k);
+  document.querySelectorAll('.mode').forEach(b => b.setAttribute('aria-checked', String(b.dataset.mode === k)));
+  $('#modeSwitch').value = k;
+}
+function buildObjects(){
+  PICKER.forEach(c => { const b = document.createElement('button'); b.type='button'; b.textContent = nm(c);
+    b.addEventListener('click', () => { if (S.pending.object) S.pending.object({cls: c, source: 'teacher'}); });
+    $('#objs').appendChild(b); });
+}
+
+document.querySelectorAll('.resp button').forEach(b => b.addEventListener('click', () => {
+  if (!S.pending.listen) return;
+  const k = b.dataset.kind;
+  const text = {yes:'(said yes)', no:'(said no)', reason:'(gave a reason)', test:'(suggested a test)', silent:''}[k];
+  S.pending.listen({text, kind: k, source: 'teacher'});
+}));
+$('#typedForm').addEventListener('submit', e => {
+  e.preventDefault(); const v = $('#typedIn').value.trim();
+  if (!v || !S.pending.listen) return;
+  S.pending.listen({text: v, source: 'typed'}); $('#typedIn').value = '';
+});
+
+$('#pitch').addEventListener('input', e => { S.pitch = +e.target.value; $('#pitchV').textContent = S.pitch.toFixed(2); store.set('pitch', S.pitch); });
+$('#honest').addEventListener('input', e => { S.honest = +e.target.value; $('#honestV').textContent = Math.round(S.honest*100) + '%'; store.set('honest', S.honest); });
+$('#voiceSel').addEventListener('change', e => { S.voice = speechSynthesis.getVoices().find(v => v.name === e.target.value) || null; store.set('voice', e.target.value); });
+$('#childName').addEventListener('input', e => { S.child = e.target.value.trim(); });
+$('#testVoice').addEventListener('click', () => {
+  try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance("Hmm... I might be wrong. Can you convince me?"); if (S.voice) u.voice = S.voice; u.pitch = S.pitch; u.rate = S.rate; speechSynthesis.speak(u); } catch {}
+});
+
+$('#startBtn').addEventListener('click', async () => {
+  // unlock audio + speech inside the tap (needed on iPhone)
+  try { S.audio = new (window.AudioContext || window.webkitAudioContext)(); S.audio.resume(); } catch {}
+  try { speechSynthesis.speak(new SpeechSynthesisUtterance(' ')); } catch {}
+  if (!SR) { S.ears = false; chip('#chipEars', 'Ears: manual (browser has no speech input)', 'off'); }
+  $('#setup').classList.add('hidden'); $('#run').classList.remove('hidden');
+  $('#modeSwitch').value = S.mode;
+  await startCamera(); wakeLock();
+  run('start');
+});
+$('#modeSwitch').addEventListener('change', e => { selectMode(e.target.value); stop(); setTimeout(() => run('switch'), 150); });
+$('#pauseBtn').addEventListener('click', () => {
+  if (S.paused) { run('resume'); }
+  else { stop(); S.paused = true; setStatus('paused'); $('#bubble').textContent = 'Paused. Tap Resume when the child is ready.'; $('#pauseBtn').textContent = 'Resume'; log('session', 'paused'); }
+});
+$('#endBtn').addEventListener('click', () => {
+  stop(); S.paused = true; $('#pauseBtn').textContent = 'Resume'; setStatus('idle');
+  log('session', `ended · thinking energy ${S.energy}`);
+  $('#bubble').textContent = `Session ended. Thinking energy: ${S.energy}. Copy the log below before starting a new session.`;
+  try { const u = new SpeechSynthesisUtterance("That was so much thinking. Thank you for helping me learn! Bye bye!"); if (S.voice) u.voice = S.voice; u.pitch = S.pitch; speechSynthesis.speak(u); } catch {}
+});
+function csv(){
+  const q = v => `"${String(v).replace(/"/g,'""')}"`;
+  return ['time,mode,round,event,text,source', ...S.log.map(e => [e.time, e.mode, e.round, BEH[e.type] || e.type, e.text, e.source].map(q).join(','))].join('\n');
+}
+$('#copyBtn').addEventListener('click', async () => {
+  const text = csv();
+  try { await navigator.clipboard.writeText(text); $('#copyBtn').textContent = 'Copied'; setTimeout(() => $('#copyBtn').textContent = 'Copy as CSV', 1500); }
+  catch { const ta = $('#csvOut'); ta.classList.remove('hidden'); ta.value = text; ta.focus(); ta.select(); $('#copyBtn').textContent = 'Select all and copy'; }
+});
+$('#newBtn').addEventListener('click', () => {
+  stop(); S.log = []; S.round = 0; S.energy = 0; S.lastClass = null; Object.keys(S.tally).forEach(k => S.tally[k] = 0);
+  $('#logBody').textContent = ''; $('#roundLbl').textContent = 'Round 0'; renderTally(); renderEnergy();
+  $('#lastBeh').textContent = 'New session. Thinking energy starts at zero.';
+  $('#run').classList.add('hidden'); $('#setup').classList.remove('hidden'); $('#csvOut').classList.add('hidden');
+});
+
+/* ---------- boot ---------- */
+buildModes(); buildObjects();
+selectMode(store.get('mode') || 'oops');
+const sp = store.get('pitch'); if (sp) { S.pitch = sp; $('#pitch').value = sp; }
+const sh = store.get('honest'); if (sh != null) { S.honest = sh; $('#honest').value = sh; }
+$('#pitchV').textContent = S.pitch.toFixed(2); $('#honestV').textContent = Math.round(S.honest*100) + '%';
+renderTally(); renderEnergy();
+if ('speechSynthesis' in window) { loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; setTimeout(() => { if (!S.voice) chip('#chipVoice', 'Voice: default', 'on'); }, 1500); }
+else chip('#chipVoice', 'Voice: unavailable', 'off');
+if (!SR) chip('#chipEars', 'Ears: manual (no speech input here)', 'off');
+loadEyes();
+})();
+</script>
+
+</body>
+</html>
